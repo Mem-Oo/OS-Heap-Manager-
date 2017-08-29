@@ -1,23 +1,23 @@
 #ifndef HEAP_H
 #define HEAP_H
-#define Bsize 16 //size of Block
+#define BB 16 //size of Block
 
 class heap {
 public:
       heap(unsigned long n);
      ~heap();
-      void *memalloc(unsigned int reqsize); //allocate function 
-      void memfree(void *allocptr); // free function
+      void *memalloc(unsigned int reqsize);
+      void memfree(void *allocptr);
 
 private:
-   struct block; //overhead of the allocated area "Alloc. Area ID"
+   struct block; //overhead
    typedef block *link;
-   struct block 
+   struct block // size of the block is 4+4+x = 8+x byte
       {
-      unsigned int size;// allocated area size 
+      unsigned int size;// Block size 
       union { //struct in the same address "space efficient"
       link nxt; //pointer to next block "4byte"
-      char data[Bsize-4]; //reminder part of the block   
+      char data[BB-4]; //reminder part of the block   
             };
       };
    link heapmem; 

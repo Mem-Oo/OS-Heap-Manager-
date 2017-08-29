@@ -1,37 +1,40 @@
 #include <iostream>
 #include <ctime>
-#include <cmath>
+#include <boost/thread.hpp>
 #include "heap.h"
 using namespace std;
+  
+heap m(128000000); // 128MB HeapSize
+double *a,*b,*c,*d,*e,*f;
 
-int main()
+void thread() // my thread thread
 {
-  int x; 
-  cout<<"...WELCOME..."<<"\nThis is a free storage Manager <Heap Manager>\n";
-  cout<<"the heap uses the first fit allocation strategy\n";
-  cout<<"Enter Heap manager size< in MB >: ";
-  cin>>x;
-  heap m(x*1000000);
-  double *a,*b,*c,*d,*e,*f;
-  clock_t start = clock(); // start of count 
-//for(long k=0;k<= 9999;k++) //activate it for calc. time only
-{
-  a=(double*)m.memalloc(300);
-  b=(double*)m.memalloc(100);
-  c=(double*)m.memalloc(100);
-  d=(double*)m.memalloc(100);
-  cout<<"a="<<a<<"\n"<<"b="<<b<<"\n"<<"c="<<c<<"\n"<<"d="<<d<<"\n";
-  m.memfree(a);
-  m.memfree(b);
-  m.memfree(c);
-  e=(double*)m.memalloc(524); //check bounce
-  cout<<"e="<<e<<"\n";
-  f=(double*)m.memalloc(300);
-  cout<<"f="<<f<<"\n";
+a=(double*)m.memalloc(300);
 }
 
-   //Calculating the average time in nsec :
-   cout<<"avg. time ="<<pow (10.0,5)*((double)clock()-start)/CLOCKS_PER_SEC<<" ns\n"; 
+//...In this example we make two threads both of them requires the allocate function.
+//and shows the thread ID on the display CMD.
+//thread safe prevents other threads from taking ownership while a particular thread owns it.
+//with the thread safe the two threads can run in parallel. 
+//one thread can access the "allocate (or free) function" on the time.
+//(For single core processors) the thread must wait until the another one leave the function.
+
+int main()
+{ 
+  // start of the time
+  //clock_t start=clock();
+//for(long k=0;k<= 9999;k++)  
+{
+ cout<<"max parallel threads = "; 
+ cout << boost::thread::hardware_concurrency() <<"\n";
+ boost::thread t1(thread);
+ boost::thread t2(thread);
+ t1.join();
+ t2.join();
+}
+
+//Calculating the average time in nsec :
+// cout<<"avg. time ="<<pow (10.0,5)*((double)clock()-start)/CLOCKS_PER_SEC<<" ns"<<"\n"; 
 
    system("PAUSE");
    return EXIT_SUCCESS;

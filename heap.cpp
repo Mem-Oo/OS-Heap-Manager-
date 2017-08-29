@@ -1,20 +1,22 @@
 #include "heap.h"
 #include <iostream>
+#include <boost/thread.hpp> 
 #include <cassert>
 using namespace std;
+boost::mutex mutex; 
 //============== constructor =================================================
  
-heap::heap(unsigned long n)
+heap::heap(unsigned long n) 
 {
-nchunk =(n+sizeof(block)-1U)/sizeof(block);//number of chunks in the heap according to block size        
+
+//boost::lock_guard<boost::mutex> lock(mutex); //mutex 
+nchunk =(n+sizeof(block)-1U)/sizeof(block);           
 heapmem= new block [nchunk+1];//heap Memory storage of size = nchunks * block size + base block
-//the Base block act as atail for the heap 
-//new block[nchunk] like  new char [1>>27].
-//but the heap is seen as constructed of a number of blocks
+// Heap is seen as constructed of a number of blocks
 //cout<<heapmem<<"\n";
 assert(heapmem); // check if the address is allocated or not
 base =&heapmem[nchunk];// Base of the heap
-head =heapmem; // Now the Heap is a big chunk ...
+head =heapmem; // the Heap is seen as a big chunk ...
 head->size =nchunk; 
 head->nxt =NULL;
 base->nxt =head;
@@ -23,12 +25,18 @@ base->size =0;
 //============== Deconstructor ===============================================
  
 heap ::~heap()
-    { delete [] heapmem; } // delete the heap from the main memory
+    { delete [] heapmem; }
 //=============== memalloc  ==================================================
  
  void *heap::memalloc(unsigned int reqsize)
 {
+ //boost::lock_guard<boost::mutex> lock(mutex);
+for (int i = 0; i < 5; ++i)
+//{
+std::cout << "Thread " << boost::this_thread::get_id() << ": " << i << std::endl;
+//}
    unsigned int nblock=(reqsize+ sizeof (block)+ sizeof(link)-1U) /sizeof (block); //number of Req. blocks 
+   // reqsize=(nblock-1)* blocksize + (blocksize - nxt size "4 byte")
    prevptr=base; //intializing 
    ptr=prevptr->nxt; // now ptr starts at the head of the heap
  while (ptr != NULL && ptr->size < nblock) // loop check for first fit block 
@@ -36,9 +44,9 @@ heap ::~heap()
 	prevptr = ptr; // prevptr will point to non fit"free" block
 	ptr = ptr->nxt; // start again from next free block to check for the fit block 
     }
-    if (ptr==NULL|| reqsize <= 0) //the search for a free area is unsuccessful or invalid size
+    if (ptr==NULL) //the search for a free area is unsuccessful
     {
-	return NULL;//OR throw bad_alloc ("out of memory"); //exception 
+	throw bad_alloc ("out of memory");
     }
     if (ptr->size > nblock) // check if the heap has anumber of blocks > number of required blocks
     {
@@ -54,21 +62,22 @@ heap ::~heap()
 //================= memfree ==================================================
   
 void heap::memfree (void* allocptr)
-{   link freeblock;
+{
+	boost::lock_guard<boost::mutex> lock(mutex);
+    link freeblock;  
     int *to; to=(int*)allocptr-1U;// the allocptr points to data array address, 
     //we need to point it to the address of the block "shift it" 
     freeblock=(link)to; //now we find the address of the alloc. block  
-	//cout<<"free="<<freeblock->size<<"\n";
     if ( freeblock< heapmem || freeblock >= (heapmem + nchunk)) //Out of the heap area
     { 
-	 return ;// throw invalid_argument ("invalid Block"); //not alloc. address 
+	  throw invalid_argument ("invalid block");
     }
      prevptr = base; // starting ...
      ptr = prevptr->nxt;
     while (ptr != NULL && ptr < freeblock) //search for the location of the block 
     {
 	prevptr = ptr; //store address of previous checked block 
-	ptr = ptr->nxt; // points to the next block(its address)
+	ptr = ptr->nxt; // points to the next block
     }
     if (ptr != NULL && freeblock + freeblock->size == ptr) // the last alloc. block    
     {
